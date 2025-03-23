@@ -1,0 +1,19 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "description": "devs tinder",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "keywords": [
+    "express",
+    "js"
+  ],
+  "author": "Dibyakanta Barik",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
