@@ -1,6 +1,7 @@
 const express = require("express");
+const validator = require("validator");
+const bcrypt = require("bcrypt");
 
-const User = require("../models/user.model");
 const { userAuth } = require("../middlewares/auth.middleware");
 const { validateEditProfileData } = require("../utils/validation");
 const profileRouter = express.Router();
@@ -31,6 +32,26 @@ profileRouter.patch("/profile/edit", userAuth, async (req, res) => {
   }
 });
 
-//todo  forgetPassword api
+profileRouter.patch("/profile/password", userAuth, async (req, res) => {
+  try {
+    const user = req.user;
+    const { prevPassword, newPassword } = req.body;
+
+    const isPasswordValid = await user.passwordValidation(prevPassword);
+    if (!isPasswordValid) throw new Error("Invalid credentials ");
+
+    const isStrongPassword = validator.isStrongPassword(newPassword);
+    if (!isStrongPassword) throw new Error("Please provide a strong password");
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(400).send("Something went wrong !!!" + err.message);
+  }
+});
 
 module.exports = profileRouter;
