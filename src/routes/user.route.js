@@ -6,7 +6,7 @@ const User = require("../models/user.model");
 
 const userRouter = express.Router();
 
-const USER_SAFE_DATA = "firstName lastName photoUrl";
+const USER_SAFE_DATA = "firstName lastName photoUrl about skills gender age";
 
 userRouter.get("/user/requests/received", userAuth, async (req, res) => {
   try {
@@ -14,7 +14,14 @@ userRouter.get("/user/requests/received", userAuth, async (req, res) => {
     const connectionRequest = await ConnectionRequest.find({
       status: "interested",
       toUserId: loggedInUser._id,
-    }).populate("fromUserId", ["firstName", "lastName", "photoUrl"]);
+    }).populate("fromUserId", [
+      "firstName",
+      "lastName",
+      "photoUrl",
+      "about",
+      "gender",
+      "age",
+    ]);
 
     res.json({ message: "Data fetch successfully", data: connectionRequest });
   } catch (err) {
@@ -50,8 +57,7 @@ userRouter.get("/user/feed", userAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     let limit = parseInt(req.query.limit) || 10;
     limit = limit > 50 ? 50 : limit;
-    const skip = page - 1 * limit;
-
+    const skip = (page - 1) * limit;
     const connectionRequest = await ConnectionRequest.find({
       $or: [{ fromUserId: loggedInUser._id }, { toUserId: loggedInUser._id }],
     }).select("fromUserId toUserId");
@@ -63,12 +69,14 @@ userRouter.get("/user/feed", userAuth, async (req, res) => {
     });
 
     const users = await User.find({
-      _id: { $nin: Array.from(hideUsersfromFeed) },
+      $and: [
+        { _id: { $nin: Array.from(hideUsersfromFeed) } },
+        { _id: { $ne: loggedInUser._id } },
+      ],
     })
       .skip(skip)
       .limit(limit)
       .select(USER_SAFE_DATA);
-
     res.json({
       data: users,
       message: "Data fetched successfully",

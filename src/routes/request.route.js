@@ -67,7 +67,7 @@ requestRouter.post(
   async (req, res) => {
     try {
       const user = req.user;
-      const toUserId = user.toUserId;
+      const toUserId = user._id;
       const requestId = req.params.requestId;
       const status = req.params.status;
 
@@ -83,15 +83,14 @@ requestRouter.post(
         toUserId,
         status: "interested",
       });
-
       if (!connectionRequest) {
         return res.status(400).json({
           message: "Connection Request not found !!!",
         });
       }
 
-      existingConnectionRequest.status = status;
-      const data = await existingConnectionRequest.save();
+      connectionRequest.status = status;
+      const data = await connectionRequest.save();
 
       res.json({
         message: "Connection request" + status + "successfully ",
