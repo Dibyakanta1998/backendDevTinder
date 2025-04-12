@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
@@ -7,13 +9,13 @@ const connectDB = require("./config/database");
 const routes = require("./routes");
 const initializeSocket = require("./utils/socket");
 require("./utils/cronJob");
+const { WEB_URL } = require("./config/constants");
 
 const app = express();
 
-
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: WEB_URL,
     credentials: true,
   })
 );

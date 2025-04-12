@@ -3,6 +3,9 @@ const bcrypt = require("bcrypt");
 
 const User = require("../models/user.model");
 const { validateSignUpData } = require("../utils/validation");
+const keys = require("../../dev_tinder_oauth.json");
+const oAuth2Client = require("../config/googleOAuth");
+const { WEB_URL } = require("../config/constants");
 
 const authRouter = express.Router();
 
@@ -81,4 +84,57 @@ authRouter.post("/logout", async (req, res) => {
   }
 });
 
+authRouter.get("/google/login", async (req, res) => {
+  try {
+    const authorizeUrl = oAuth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: [
+        "https://www.googleapis.com/auth/userinfo.profile",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ],
+    });
+    res.redirect(authorizeUrl);
+  } catch (err) {
+    res.sendStatus(400).send("Something went wrong !!!", err.message);
+  }
+});
+
+authRouter.get("/googleOAuth/callback", async (req, res) => {
+  try {
+    const { code } = req.query;
+    console.log(code);
+
+    const { tokens } = await oAuth2Client.getToken(code);
+
+    const ticket = await oAuth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: keys.web.client_id,
+    });
+
+    const payload = ticket.getPayload();
+
+    const userPayload = {
+      emailId: payload.email,
+      firstName: payload.given_name,
+      lastName: payload.family_name,
+    };
+
+    if (!userPayload.emailId)
+      throw new Error("Email is not associated with the account !!!");
+
+    let user = await User.findOne({
+      emailId: payload.email,
+    });
+
+    if (!user) {
+      user = new User(userPayload);
+      await user.save();
+    }
+    const token = await user.getJWT();
+
+    res.cookie("token", token).redirect(WEB_URL + "/profile");
+  } catch (err) {
+    res.sendStatus(400).send("Something went wrong !!!", err.message);
+  }
+});
 module.exports = authRouter;
